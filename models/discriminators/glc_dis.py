@@ -24,7 +24,7 @@ def get_image_patch(input, mask):
 def glc_lc_dis(input, mask, output_collection, scope='glc_lc_dis'):
   tf.assert_equal(input.get_shape().as_list()[:3], mask.get_shape().as_list())
   batch_size = input.get_shape().as_list()[0]
-  net_input = tf.Variable(initial_value=tf.zeros([batch_size, 128, 128, 3]))
+  net_input = tf.Variable(initial_value=tf.zeros([batch_size, 128, 128, 3]), trainable= False)
   for i in range(input.get_shape().as_list()[0]):
     tf.scatter_update(net_input, [i], tf.expand_dims(get_image_patch(input[i], mask[i]), axis=0))
 
