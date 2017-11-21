@@ -65,7 +65,7 @@ def glc_dis(input, mask, scope='glc_dis'):
     fc_lc, end_points_collection = glc_lc_dis(input, mask, end_points_collection)
     fc_gb, end_points_collection = glc_gb_dis(input, end_points_collection)
     fc_concat = tf.concat([fc_lc, fc_gb], axis=1, name='fc_output')
-    output = slim.fully_connected(fc_concat, 2, activation_fn=tf.nn.sigmoid, scope='output')
+    output = slim.fully_connected(fc_concat, 1, activation_fn=tf.nn.sigmoid, scope='output')
     end_points = slim.utils.convert_collection_to_dict(end_points_collection)
     return output, end_points
 

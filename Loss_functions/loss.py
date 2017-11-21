@@ -1,27 +1,38 @@
 import tensorflow as tf
 import numpy as np
+
 slim = tf.contrib.slim
 
-def GAN_loss(out, case = 0):
-    m = out.get_shape().as_list()[0]
-    D_loss = -tf.reduce_mean(tf.log(tf.slice(out,[0,1],[m,1])) + tf.log(1. - tf.slice(out,[0,0],[m,1])))
-    G_loss = -tf.reduce_mean(tf.log(1. - tf.slice(out,[0,0],[m,1])))
 
-    # Alternative losses in case logits need to be calculated:
-    # -------------------
-    # D_loss_real = tf.reduce_mean(tf.nn.sigmoid_cross_entropy_with_logits(D_logit_real, tf.ones_like(D_logit_real)))
-    # D_loss_fake = tf.reduce_mean(tf.nn.sigmoid_cross_entropy_with_logits(D_logit_fake, tf.zeros_like(D_logit_fake)))
-    # D_loss = D_loss_real + D_loss_fake
-    # G_loss = tf.reduce_mean(tf.nn.sigmoid_cross_entropy_with_logits(D_logit_fake, tf.ones_like(D_logit_fake)))
-    if case == 0:
-        return D_loss
-    else:
-        return G_loss
+def generator_minimax_loss(dis_pred, gt_vector):
+  """
+  This function calculates the minimax loss for generator based on the Ian goodfellow paper
+  :param dis_pred:
+  :param gt_vector:
+  :return:
+  """
+  loss = tf.cast(tf.divide(tf.reduce_sum(tf.multiply(tf.log((1 - dis_pred)), (1-gt_vector))),
+                   tf.reduce_sum(1 - gt_vector),
+                   name='generator_minimax_loss'), tf.float32)
+  tf.losses.add_loss(loss)
+  return loss
 
-def Reconstruction_loss(input, mask, ground_truth):
+
+def discriminator_minimax_loss(dis_pred, gt_vector):
+  loss_1 = tf.multiply(tf.log((1 - dis_pred)), (1-gt_vector))
+  loss_2 = tf.multiply(tf.log(dis_pred), gt_vector)
+  loss = - (loss_1 + loss_2)
+  loss = tf.cast(tf.reduce_mean(loss, name='discriminator_minimax_loss'), tf.float32)
+  tf.losses.add_loss(loss)
+  return loss
+
+
+def reconstruction_loss(gen_pred, mask, gt_image):
+  if len(mask.get_shape()) == 3:
     mask = tf.expand_dims(mask,axis=3)
-    return tf.losses.mean_squared_error(tf.multiply(input,mask), tf.multiply(ground_truth,mask))
-
+  loss = tf.losses.mean_squared_error(tf.multiply(gen_pred, mask),
+                                      gt_image, weights=mask)
+  return loss
 
 def main():
   input = tf.random_normal([1, 228, 228, 3], dtype= tf.float64)
@@ -29,13 +40,16 @@ def main():
   mask = np.zeros([1, 228, 228], dtype= np.float64)
   mask[:, :124, :124] = 1
   mask = tf.convert_to_tensor(mask)
-  disc_output = tf.random_normal([3,2], dtype= tf.float64)
-  R_loss = Reconstruction_loss(input, mask, gt)
+  disc_output = tf.random_normal([3,], dtype= tf.float64)
+  R_loss = reconstruction_loss(input, mask, gt)
   print(R_loss)
 
-  loss = GAN_loss(disc_output)
+  gt = np.zeros([3, ])
+  loss = generator_minimax_loss(disc_output, gt)
   print(loss)
-
+  loss = discriminator_minimax_loss(disc_output, gt)
+  print(loss)
+  print(tf.losses.get_total_loss())
 
 
 if __name__=='__main__':
