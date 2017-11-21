@@ -1,3 +1,8 @@
 .idea
 *.swp
 .idea/*
+workspace
+celeba.tfrecords
+Untitled.ipynb
+.ipynb_checkpoints
+

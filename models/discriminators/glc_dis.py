@@ -24,7 +24,7 @@ def get_image_patch(input, mask):
 def glc_lc_dis(input, mask, output_collection, scope='glc_lc_dis'):
   tf.assert_equal(input.get_shape().as_list()[:3], mask.get_shape().as_list())
   batch_size = input.get_shape().as_list()[0]
-  net_input = tf.Variable(initial_value=tf.zeros([batch_size, 128, 128, 3]))
+  net_input = tf.Variable(initial_value=tf.zeros([batch_size, 128, 128, 3]), trainable=False)
   for i in range(input.get_shape().as_list()[0]):
     tf.scatter_update(net_input, [i], tf.expand_dims(get_image_patch(input[i], mask[i]), axis=0))
 
@@ -65,7 +65,7 @@ def glc_dis(input, mask, scope='glc_dis'):
     fc_lc, end_points_collection = glc_lc_dis(input, mask, end_points_collection)
     fc_gb, end_points_collection = glc_gb_dis(input, end_points_collection)
     fc_concat = tf.concat([fc_lc, fc_gb], axis=1, name='fc_output')
-    output = slim.fully_connected(fc_concat, 2, activation_fn=tf.nn.sigmoid, scope='output')
+    output = slim.fully_connected(fc_concat, 1, activation_fn=tf.nn.sigmoid, scope='output')
     end_points = slim.utils.convert_collection_to_dict(end_points_collection)
     return output, end_points
 
