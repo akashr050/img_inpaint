@@ -25,6 +25,7 @@ flags.DEFINE_float('mean_fill', 102.0, '')
 flags.DEFINE_integer('num_channels', 3, '')
 flags.DEFINE_integer('clip_gradient_norm', 4, '')
 flags.DEFINE_string('tb_dir', 'tb_results', '')
+flags.DEFINE_string('ckpt_dir', 'checkpoints', '')
 FLAGS = flags.FLAGS
 
 
@@ -94,6 +95,7 @@ def train_glc():
 
   with tf.Session() as sess:
     tb_writer = tf.summary.FileWriter(FLAGS.tb_dir + '/train', sess.graph)
+    saver = tf.train.Saver()
     sess.run(tf.global_variables_initializer())
     sess.run(inputs['iterator'].initialize, feed_dict={
       inputs['image_paths']: train_img_paths})
@@ -109,6 +111,7 @@ def train_glc():
             _, loss_summaries = sess.run([generator_dis_train_op, loss_summary_op])
           tb_writer.add_summary(loss_summaries, step)
           print('Global_step: {}'.format(step))
+          saver.save(sess, FLAGS.ckpt_dir)
       except tf.errors.OutOfRangeError:
         break
   return None
