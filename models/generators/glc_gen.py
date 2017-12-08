@@ -4,8 +4,8 @@ import numpy as np
 slim = tf.contrib.slim
 
 
-def glc_gen(input, mask, mean_fill= 102, is_training=False, scope='glc_gen'):
-  tf.assert_equal(input.get_shape().as_list()[:3], mask.get_shape().as_list()[:3])
+def generator(input, mask, mean_fill=102, scope='glc_gen'):
+  tf.assert_equal(input.get_shape()[1:3], mask.get_shape()[1:3])
   with tf.variable_scope(scope):
     end_points_collection = scope + '_endpoints'
     with slim.arg_scope([slim.conv2d,
@@ -17,6 +17,7 @@ def glc_gen(input, mask, mean_fill= 102, is_training=False, scope='glc_gen'):
       with slim.arg_scope([slim.conv2d_transpose], padding='SAME', biases_initializer=None):
         # net = tf.pad(input, [[0, 0], [100, 100], [100, 100], [0, 0]], mode="CONSTANT", constant_values=0.0)
         net = tf.add(input * (1-mask), mean_fill * mask, name='masked_img')
+        net = tf.divide(net, 255.0)
         tf.add_to_collection(end_points_collection, net)
         net = slim.conv2d(net, 64, [5, 5], scope='conv1')
         net = slim.conv2d(net, 128, [3, 3], stride=2, scope='conv2_1')
@@ -44,7 +45,7 @@ def glc_gen(input, mask, mean_fill= 102, is_training=False, scope='glc_gen'):
 def main():
   input = tf.random_normal([1, 228, 228, 3])
   mask = tf.random_normal([1, 228, 228, 1])
-  a, b = glc_gen(input, mask)
+  a, b = generator(input, mask)
 
 if __name__=='__main__':
   main()

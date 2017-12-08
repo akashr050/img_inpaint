@@ -1,20 +1,30 @@
 import tensorflow as tf
 import numpy as np
 import csv
-from tensorflow.contrib.data import Dataset, Iterator
-
+from models.generators import glc_gen
+from models.discriminators import glc_dis
+from input_generator import gen_inputs
 import utils
-from models import discriminators, generators
+import loss
 
 flags = tf.app.flags
 slim = tf.contrib.slim
+layers = tf.contrib.layers
 
+# TODO: ADD checkpoint saver
+T_TRAIN, T_C, T_D = 100, 50, 40
 flags.DEFINE_string('eval_file', None, 'Path to evaluation csv')
 flags.DEFINE_string('inp_dir', None, 'Path to input directory')
-flags.DEFINE_integer('img_height', 227, 'Image height')
-flags.DEFINE_integer('img_width', 227, 'image_width')
-flags.DEFINE_integer('mask_min_size', 90, '')
-flags.DEFINE_integer('mask_max_size', 120, '')
+flags.DEFINE_integer('batch_size', 100, '')
+flags.DEFINE_integer('epochs', 1000, '')
+flags.DEFINE_integer('img_size', 160, 'Image height')
+flags.DEFINE_integer('img_width', 160, 'image_width')
+flags.DEFINE_integer('mask_min_size', 48, '')
+flags.DEFINE_integer('mask_max_size', 96, '')
+flags.DEFINE_float('mean_fill', 102.0, '')
+flags.DEFINE_integer('num_channels', 3, '')
+flags.DEFINE_integer('clip_gradient_norm', 4, '')
+flags.DEFINE_string('tb_dir', 'tb_results', '')
 FLAGS = flags.FLAGS
 
 
@@ -32,26 +42,79 @@ def get_data(eval_file):
   return img_train, img_val
 
 
-def generate_mask(mask_size, params):
-  mask_temp = np.random.uniform(low=params.mask_min_size, high=params.mask_max_size, size=mask_size)
-  mask = np.zeros((mask_size, params.img_height, params.img_width), dtype=np.int32)
-  mask_offset_height = np.random.uniform(low=10, high=params.img_height - mask_temp -10)
-  mask_offset_width = np.random.uniform(low=10, high=params.)
-  mask[:, mask_temp]
-
 
 def train_glc():
-  train_img_paths, val_img_paths = get_data(FLAGS.eval_file)
+  # train_img_paths = get_data(FLAGS.train_file)
+  slim.get_or_create_global_step()
+  inputs = gen_inputs(FLAGS)
+  image = inputs['image_bch']
+  mask = inputs['mask_bch']
+  gen_output, _ = glc_gen.generator(image, mask, mean_fill=FLAGS.mean_fill)
 
-  images = tf.placeholder(dtype=tf.string, shape=[None])
-  mask = tf.placeholder(dtype=tf.int32, shape=[None, FLAGS.img_height, FLAGS.img_width, 1])
-  mask_dim = tf.random_uniform(FLAGS.batch_size, minval=FLAGS.mask_dim_size, maxval=FLAGS.mask_dim_size)
-  tf.random_crop(im)
+  ##################
+  ## Optimisation ##
+  ##################
 
-  return
+  # Discriminator loss
+  dis_input = tf.concat([gen_output, image], axis=0)
+  dis_mask = tf.concat([mask]*2, axis=0)
+  dis_labels = tf.concat([tf.zeros(shape=(FLAGS.batch_size,)),
+                          tf.ones(shape=FLAGS.batch_size,)], axis=0)
+  pred_dis_labels, _ = glc_dis.discriminator(dis_input, dis_mask, FLAGS)
+  discriminator_loss = loss.discriminator_minimax_loss(pred_dis_labels, dis_labels)
+
+  # Generator loss
+  gen_dis_input = gen_output
+  gen_dis_masks = mask
+  gen_dis_labels = tf.ones(shape=FLAGS.batch_size,)
+  pred_gen_dis_labels, _ = glc_dis.discriminator(gen_dis_input, gen_dis_masks, FLAGS,
+                                                 reuse=True)
+  generator_dis_loss = loss.generator_minimax_loss(gen_dis_labels, pred_gen_dis_labels)
+  generator_rec_loss = loss.reconstruction_loss(gen_output, mask, image)
+
+  dis_optimizer = tf.train.AdamOptimizer(learning_rate=0.001)
+  gen_rec_optimizer = tf.train.AdamOptimizer(learning_rate=0.0001)
+  gen_dis_optimizer = tf.train.AdamOptimizer(learning_rate=0.0001)
+
+  dis_train_op = utils.get_train_op_for_scope(discriminator_loss,
+                                              dis_optimizer,
+                                              ['glc_dis'],
+                                              FLAGS.clip_gradient_norm)
+
+  generator_rec_train_op = utils.get_train_op_for_scope(generator_rec_loss,
+                                                        gen_rec_optimizer,
+                                                        ['glc_gen'],
+                                                        FLAGS.clip_gradient_norm)
+
+  generator_dis_train_op = utils.get_train_op_for_scope(generator_dis_loss,
+                                                        gen_dis_optimizer,
+                                                        ['glc_gen'],
+                                                        FLAGS.clip_gradient_norm)
+  loss_summary_op = layers.summarize_collection(tf.GraphKeys.LOSSES)
+
+  with tf.Session() as sess:
+    tb_writer = tf.summary.FileWriter(FLAGS.tb_dir + '/train', sess.graph)
+    sess.run(tf.global_variables_initializer())
+    sess.run(inputs['iterator'].initialize, feed_dict={
+      inputs['image_paths']: train_img_paths})
+    while True:
+      try:
+        for counter in range(T_TRAIN):
+          step = sess.run(slim.get_global_step())
+          if counter < T_C:
+            _, loss_summaries = sess.run([generator_rec_train_op, loss_summary_op])
+          elif counter < T_C+T_D:
+            _, loss_summaries = sess.run([dis_train_op, loss_summary_op])
+          else:
+            _, loss_summaries = sess.run([generator_dis_train_op, loss_summary_op])
+          tb_writer.add_summary(loss_summaries, step)
+          print('Global_step: {}'.format(step))
+      except tf.errors.OutOfRangeError:
+        break
+  return None
 
 def main():
-  return
+  train_glc()
 
 if __name__=='__main__':
   main()
