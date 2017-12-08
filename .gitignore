@@ -5,4 +5,4 @@ workspace
 celeba.tfrecords
 Untitled.ipynb
 .ipynb_checkpoints
-
+tb_results
