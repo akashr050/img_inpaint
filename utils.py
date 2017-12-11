@@ -25,7 +25,7 @@ def get_train_op_for_scope(loss, optimizer, scopes, clip_gradient_norm):
       filter(is_trainable, tf.contrib.framework.get_model_variables(scope)))
     update_ops.extend(tf.get_collection(tf.GraphKeys.UPDATE_OPS, scope))
 
-    print('Trainable parameters %s' % tf.contrib.framework.get_model_variables(scope))
+    # print('Trainable parameters %s' % tf.contrib.framework.get_model_variables(scope))
   return slim.learning.create_train_op(
     loss,
     optimizer,
