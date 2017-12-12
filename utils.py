@@ -8,7 +8,6 @@ def loss_summaries():
   return loss_summary_op
 
 
-
 def get_train_op_for_scope(loss, optimizer, scopes, clip_gradient_norm):
   """Train operation function for the given scope used for training."""
   for var in tf.trainable_variables():

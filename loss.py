@@ -24,7 +24,6 @@ def discriminator_minimax_loss(dis_pred, gt_vector):
   loss = - (loss_1 + loss_2)
   loss = tf.cast(tf.reduce_mean(loss, name='discriminator_minimax_loss'), tf.float32)
   tf.losses.add_loss(loss)
-
   return loss
 
 

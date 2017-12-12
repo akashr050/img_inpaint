@@ -1,6 +1,5 @@
 import tensorflow as tf
 import numpy as np
-import csv
 from models.generators import glc_gen
 from models.discriminators import glc_dis
 from input_generator import gen_inputs
@@ -26,7 +25,7 @@ flags.DEFINE_float('mean_fill', 102.0, '')
 flags.DEFINE_integer('num_channels', 3, '')
 flags.DEFINE_integer('clip_gradient_norm', 4, '')
 flags.DEFINE_string('tb_dir', 'tb_results', '')
-flags.DEFINE_string('ckpt_dir', 'checkpoints', '')
+flags.DEFINE_string('ckpt_dir', 'checkpoints/', '')
 FLAGS = flags.FLAGS
 
 
@@ -63,7 +62,7 @@ def train_glc():
   # Generator loss
   gen_dis_input = gen_output
   gen_dis_masks = mask
-  gen_dis_labels = tf.ones(shape=FLAGS.batch_size,)
+  gen_dis_labels = tf.ones(shape=(FLAGS.batch_size,))
   pred_gen_dis_labels, _ = glc_dis.discriminator(gen_dis_input, gen_dis_masks, FLAGS,
                                                  reuse=True)
   generator_dis_loss = loss.generator_minimax_loss(gen_dis_labels, pred_gen_dis_labels)
@@ -87,8 +86,8 @@ def train_glc():
                                                         gen_dis_optimizer,
                                                         ['glc_gen'],
                                                         FLAGS.clip_gradient_norm)
-  loss_summary_op = layers.summarize_collection(tf.GraphKeys.LOSSES).merge_all
-
+  layers.summarize_collection(tf.GraphKeys.LOSSES)
+  loss_summary_op = tf.summary.merge_all()
   with tf.Session() as sess:
     tb_writer = tf.summary.FileWriter(FLAGS.tb_dir + '/train', sess.graph)
     saver = tf.train.Saver()
