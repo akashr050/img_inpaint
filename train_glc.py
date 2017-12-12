@@ -6,6 +6,7 @@ from models.discriminators import glc_dis
 from input_generator import gen_inputs
 import utils
 import loss
+import os
 
 flags = tf.app.flags
 slim = tf.contrib.slim
@@ -13,9 +14,9 @@ layers = tf.contrib.layers
 
 # TODO: ADD checkpoint saver
 T_TRAIN, T_C, T_D = 100, 50, 40
-flags.DEFINE_string('eval_file', None, 'Path to evaluation csv')
-flags.DEFINE_string('inp_dir', None, 'Path to input directory')
-flags.DEFINE_integer('batch_size', 100, '')
+flags.DEFINE_string('train_file', 'train.txt', 'Path to train images')
+flags.DEFINE_string('inp_dir', 'workspace', 'Path to input directory')
+flags.DEFINE_integer('batch_size', 5, '')
 flags.DEFINE_integer('epochs', 1000, '')
 flags.DEFINE_integer('img_size', 160, 'Image height')
 flags.DEFINE_integer('img_width', 160, 'image_width')
@@ -29,23 +30,18 @@ flags.DEFINE_string('ckpt_dir', 'checkpoints', '')
 FLAGS = flags.FLAGS
 
 
-def get_data(eval_file):
-  csvreader = csv.reader(open(eval_file, 'r+'))
-  csvreader.next()
-  img_paths = []
-  tag = []
-  for index, line in enumerate(csvreader):
-    img_paths.extend(line[0])
-    tag.extend(line[1])
+def get_data(file_path):
+  txt_file = open(file_path, 'r+').readlines()
+  img_paths=[]
+  for line in txt_file:
+    img_path = os.path.join(FLAGS.inp_dir, 'raw_images', line[:-1])
+    img_paths.append(img_path)
   img_paths = np.array(img_paths)
-  tag = np.array(tag)
-  img_train, img_val = img_paths[tag==0], img_paths[tag==1]
-  return img_train, img_val
-
+  return img_paths
 
 
 def train_glc():
-  # train_img_paths = get_data(FLAGS.train_file)
+  train_img_paths = get_data(os.path.join(FLAGS.inp_dir, FLAGS.train_file))
   slim.get_or_create_global_step()
   inputs = gen_inputs(FLAGS)
   image = inputs['image_bch']
@@ -91,13 +87,13 @@ def train_glc():
                                                         gen_dis_optimizer,
                                                         ['glc_gen'],
                                                         FLAGS.clip_gradient_norm)
-  loss_summary_op = layers.summarize_collection(tf.GraphKeys.LOSSES)
+  loss_summary_op = layers.summarize_collection(tf.GraphKeys.LOSSES).merge_all
 
   with tf.Session() as sess:
     tb_writer = tf.summary.FileWriter(FLAGS.tb_dir + '/train', sess.graph)
     saver = tf.train.Saver()
     sess.run(tf.global_variables_initializer())
-    sess.run(inputs['iterator'].initialize, feed_dict={
+    sess.run(inputs['iterator'].initializer, feed_dict={
       inputs['image_paths']: train_img_paths})
     while True:
       try:
