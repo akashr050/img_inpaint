@@ -13,18 +13,18 @@ def get_image_patch(input, mask, params):
   col_center = (col_min + col_max)/2
   mask_mid = params.mask_max_size/2
   row_center = tf.cond(row_center <= mask_mid,
-                       lambda: tf.cast(mask_mid, dtype=tf.float64),
+                       lambda: tf.cast(mask_mid, dtype=tf.int64),
                        lambda: row_center)
   row_center = tf.cond(row_center >= params.img_size - mask_mid,
-                       lambda: tf.cast(params.img_size - mask_mid, dtype=tf.float64),
+                       lambda: tf.cast(params.img_size - mask_mid, dtype=tf.int64),
                        lambda: row_center)
 
   col_center = tf.cond(col_center <= mask_mid,
-                       lambda: tf.cast(mask_mid, dtype=tf.float64),
+                       lambda: tf.cast(mask_mid, dtype=tf.int64),
                        lambda: col_center)
   col_center = tf.cond(col_center >= params.img_size - mask_mid,
                        lambda: tf.cast(params.img_size - mask_mid,
-                                       dtype=tf.float64), lambda: col_center)
+                                       dtype=tf.int64), lambda: col_center)
   output = tf.slice(input,
                     tf.cast([row_center-mask_mid, col_center-mask_mid,0], dtype=tf.int32),
                     [params.mask_max_size, params.mask_max_size, params.num_channels])

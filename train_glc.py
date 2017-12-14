@@ -14,16 +14,16 @@ layers = tf.contrib.layers
 # TODO: ADD checkpoint saver
 T_TRAIN, T_C, T_D = 100, 50, 40
 flags.DEFINE_string('train_file', 'train.txt', 'Path to train images')
-flags.DEFINE_string('inp_dir', 'workspace', 'Path to input directory')
-flags.DEFINE_integer('batch_size', 5, '')
-flags.DEFINE_integer('epochs', 1000, '')
+flags.DEFINE_string('inp_dir', '/home/arastog/datasets/CelebA', 'Path to input directory')
+flags.DEFINE_integer('batch_size', 64, '')
+flags.DEFINE_integer('epochs', 50000, '')
 flags.DEFINE_integer('img_size', 160, 'Image height')
 flags.DEFINE_integer('img_width', 160, 'image_width')
 flags.DEFINE_integer('mask_min_size', 48, '')
 flags.DEFINE_integer('mask_max_size', 96, '')
-flags.DEFINE_float('mean_fill', 102.0, '')
+flags.DEFINE_float('mean_fill', 102.0/255.0, '')
 flags.DEFINE_integer('num_channels', 3, '')
-flags.DEFINE_integer('clip_gradient_norm', 4, '')
+flags.DEFINE_integer('clip_gradient_norm', 5, '')
 flags.DEFINE_string('tb_dir', 'tb_results', '')
 flags.DEFINE_string('ckpt_dir', 'checkpoints/', '')
 FLAGS = flags.FLAGS
@@ -105,7 +105,7 @@ def train_glc():
           else:
             _, loss_summaries = sess.run([generator_dis_train_op, loss_summary_op])
           tb_writer.add_summary(loss_summaries, step)
-          print('Global_step: {}'.format(step))
+          print 'Global_step: {}'.format(step)
           saver.save(sess, FLAGS.ckpt_dir)
       except tf.errors.OutOfRangeError:
         break
