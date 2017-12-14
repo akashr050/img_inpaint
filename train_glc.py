@@ -12,10 +12,10 @@ slim = tf.contrib.slim
 layers = tf.contrib.layers
 
 # TODO: ADD checkpoint saver
-T_TRAIN, T_C, T_D = 5, 2, 1
+T_TRAIN, T_C, T_D = 100, 50, 40
 flags.DEFINE_string('train_file', 'train.txt', 'Path to train images')
 flags.DEFINE_string('inp_dir', 'workspace', 'Path to input directory')
-flags.DEFINE_integer('batch_size', 1, '')
+flags.DEFINE_integer('batch_size', 128, '')
 flags.DEFINE_integer('epochs', 50000, '')
 flags.DEFINE_integer('img_size', 160, 'Image height')
 flags.DEFINE_integer('img_width', 160, 'image_width')
@@ -69,8 +69,8 @@ def train_glc():
   generator_rec_loss = loss.reconstruction_loss(gen_output, mask, image)
 
   dis_optimizer = tf.train.AdamOptimizer(learning_rate=0.001)
-  gen_rec_optimizer = tf.train.AdamOptimizer(learning_rate=0.0001)
-  gen_dis_optimizer = tf.train.AdamOptimizer(learning_rate=0.0001)
+  gen_rec_optimizer = tf.train.AdamOptimizer(learning_rate=0.001)
+  gen_dis_optimizer = tf.train.AdamOptimizer(learning_rate=0.001)
 
   dis_train_op = utils.get_train_op_for_scope(discriminator_loss,
                                               dis_optimizer,
@@ -94,19 +94,20 @@ def train_glc():
     sess.run(tf.global_variables_initializer())
     sess.run(inputs['iterator'].initializer, feed_dict={
       inputs['image_paths']: train_img_paths})
+
     while True:
       try:
         for counter in range(T_TRAIN):
           step = sess.run(slim.get_global_step())
           if counter < T_C:
-            _, loss_summaries, aa = sess.run([generator_rec_train_op, loss_summary_op, generator_rec_loss])
+            _, loss_summaries = sess.run([generator_rec_train_op, loss_summary_op, generator_rec_loss])
           elif counter < T_C+T_D:
-            _, loss_summaries, aa = sess.run([dis_train_op, loss_summary_op, discriminator_loss])
+            _, loss_summaries = sess.run([dis_train_op, loss_summary_op, discriminator_loss])
           else:
-            _, loss_summaries, aa = sess.run([generator_dis_train_op, loss_summary_op, generator_dis_loss])
+            _, loss_summaries = sess.run([generator_dis_train_op, loss_summary_op, generator_dis_loss])
           tb_writer.add_summary(loss_summaries, step)
-          print('Global_step: {}, Loss: {}'.format(step, aa))
-          # saver.save(sess, FLAGS.ckpt_dir)
+          print 'Global_step: {}'.format(step)
+        saver.save(sess, FLAGS.ckpt_dir)
       except tf.errors.OutOfRangeError:
         break
   return None
