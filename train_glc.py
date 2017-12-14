@@ -14,8 +14,8 @@ layers = tf.contrib.layers
 # TODO: ADD checkpoint saver
 T_TRAIN, T_C, T_D = 5, 2, 1
 flags.DEFINE_string('train_file', 'train.txt', 'Path to train images')
-flags.DEFINE_string('inp_dir', '/home/arastog/datasets/CelebA', 'Path to input directory')
-flags.DEFINE_integer('batch_size', 64, '')
+flags.DEFINE_string('inp_dir', 'workspace', 'Path to input directory')
+flags.DEFINE_integer('batch_size', 1, '')
 flags.DEFINE_integer('epochs', 50000, '')
 flags.DEFINE_integer('img_size', 160, 'Image height')
 flags.DEFINE_integer('img_width', 160, 'image_width')
@@ -62,10 +62,10 @@ def train_glc():
   # Generator loss
   gen_dis_input = gen_output
   gen_dis_masks = mask
-  gen_dis_labels = tf.ones(shape=(FLAGS.batch_size,))
+  gen_dis_labels = tf.zeros(shape=(FLAGS.batch_size,))
   pred_gen_dis_labels, _ = glc_dis.discriminator(gen_dis_input, gen_dis_masks, FLAGS,
                                                  reuse=True)
-  generator_dis_loss = loss.generator_minimax_loss(gen_dis_labels, pred_gen_dis_labels)
+  generator_dis_loss = loss.generator_minimax_loss(pred_gen_dis_labels, gen_dis_labels)
   generator_rec_loss = loss.reconstruction_loss(gen_output, mask, image)
 
   dis_optimizer = tf.train.AdamOptimizer(learning_rate=0.001)
@@ -99,14 +99,14 @@ def train_glc():
         for counter in range(T_TRAIN):
           step = sess.run(slim.get_global_step())
           if counter < T_C:
-            _, loss_summaries = sess.run([generator_rec_train_op, loss_summary_op])
+            _, loss_summaries, aa = sess.run([generator_rec_train_op, loss_summary_op, generator_rec_loss])
           elif counter < T_C+T_D:
-            _, loss_summaries = sess.run([dis_train_op, loss_summary_op])
+            _, loss_summaries, aa = sess.run([dis_train_op, loss_summary_op, discriminator_loss])
           else:
-            _, loss_summaries = sess.run([generator_dis_train_op, loss_summary_op])
+            _, loss_summaries, aa = sess.run([generator_dis_train_op, loss_summary_op, generator_dis_loss])
           tb_writer.add_summary(loss_summaries, step)
-          print('Global_step: {}'.format(step))
-          saver.save(sess, FLAGS.ckpt_dir)
+          print('Global_step: {}, Loss: {}'.format(step, aa))
+          # saver.save(sess, FLAGS.ckpt_dir)
       except tf.errors.OutOfRangeError:
         break
   return None
