@@ -12,7 +12,7 @@ slim = tf.contrib.slim
 layers = tf.contrib.layers
 
 # TODO: ADD checkpoint saver
-T_TRAIN, T_C, T_D = 100, 50, 40
+T_TRAIN, T_C, T_D = 5, 2, 1
 flags.DEFINE_string('train_file', 'train.txt', 'Path to train images')
 flags.DEFINE_string('inp_dir', '/home/arastog/datasets/CelebA', 'Path to input directory')
 flags.DEFINE_integer('batch_size', 64, '')
@@ -105,7 +105,7 @@ def train_glc():
           else:
             _, loss_summaries = sess.run([generator_dis_train_op, loss_summary_op])
           tb_writer.add_summary(loss_summaries, step)
-          print 'Global_step: {}'.format(step)
+          print('Global_step: {}'.format(step))
           saver.save(sess, FLAGS.ckpt_dir)
       except tf.errors.OutOfRangeError:
         break

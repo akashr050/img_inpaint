@@ -4,7 +4,7 @@ import numpy as np
 slim = tf.contrib.slim
 
 
-def generator(input, mask, mean_fill=102, scope='glc_gen'):
+def generator(input, mask, mean_fill=0.5, scope='glc_gen'):
   tf.assert_equal(input.get_shape()[1:3], mask.get_shape()[1:3])
   with tf.variable_scope(scope):
     end_points_collection = scope + '_endpoints'
@@ -17,7 +17,6 @@ def generator(input, mask, mean_fill=102, scope='glc_gen'):
       with slim.arg_scope([slim.conv2d_transpose], padding='SAME', biases_initializer=None):
         # net = tf.pad(input, [[0, 0], [100, 100], [100, 100], [0, 0]], mode="CONSTANT", constant_values=0.0)
         net = tf.add(input * (1-mask), mean_fill * mask, name='masked_img')
-        net = tf.divide(net, 255.0)
         tf.add_to_collection(end_points_collection, net)
         net = slim.conv2d(net, 64, [5, 5], scope='conv1')
         net = slim.conv2d(net, 128, [3, 3], stride=2, scope='conv2_1')
@@ -37,7 +36,7 @@ def generator(input, mask, mean_fill=102, scope='glc_gen'):
         net = slim.conv2d_transpose(net, 64, [4, 4], 2, scope='conv5_1')
         net = slim.conv2d(net, 32, [3, 3], scope='conv5_2')
         net = slim.conv2d(net, 3, [3, 3], activation_fn=tf.nn.sigmoid, scope='conv5_3')
-
+        net = tf.add(net * mask, input * (1-mask))
         end_points = slim.utils.convert_collection_to_dict(end_points_collection)
         return net, end_points
 

@@ -21,6 +21,7 @@ def gen_inputs(params):
     image_resized = tf.image.resize_image_with_crop_or_pad(
       image_decoded, params.img_size, params.img_size)
     image = tf.to_float(image_resized)
+    image = tf.divide(image, 255.0)
     mask = tf.py_func(generate_mask, [1], tf.float32)
     return image, mask
 
