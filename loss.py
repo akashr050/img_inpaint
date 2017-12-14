@@ -11,7 +11,7 @@ def generator_minimax_loss(dis_pred, gt_vector):
   :param gt_vector:
   :return:
   """
-  loss = tf.cast(tf.divide(tf.reduce_sum(tf.multiply(tf.log((1 - dis_pred)), (1-gt_vector))),
+  loss = tf.cast(-1*tf.divide(tf.reduce_sum(tf.multiply(tf.log((1 - dis_pred)), (1-gt_vector))),
                    tf.reduce_sum(1 - gt_vector),
                    name='generator_minimax_loss'), tf.float32)
   tf.losses.add_loss(loss)
