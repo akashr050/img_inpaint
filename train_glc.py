@@ -12,10 +12,11 @@ slim = tf.contrib.slim
 layers = tf.contrib.layers
 
 # TODO: ADD checkpoint saver
-T_TRAIN, T_C, T_D = 5, 2, 1
-flags.DEFINE_string('train_file', 'train.txt', 'Path to train images')
+T_TRAIN, T_C, T_D = 5000, 900, 100
+alpha = 0.0004
+flags.DEFINE_string('train_file', 'train1.txt', 'Path to train images')
 flags.DEFINE_string('inp_dir', 'workspace', 'Path to input directory')
-flags.DEFINE_integer('batch_size', 1, '')
+flags.DEFINE_integer('batch_size', 5, '')
 flags.DEFINE_integer('epochs', 50000, '')
 flags.DEFINE_integer('img_size', 160, 'Image height')
 flags.DEFINE_integer('img_width', 160, 'image_width')
@@ -67,10 +68,15 @@ def train_glc():
                                                  reuse=True)
   generator_dis_loss = loss.generator_minimax_loss(pred_gen_dis_labels, gen_dis_labels)
   generator_rec_loss = loss.reconstruction_loss(gen_output, mask, image)
+  gen_total_loss = tf.add(np.multiply(alpha, generator_dis_loss), generator_rec_loss)
 
-  dis_optimizer = tf.train.AdamOptimizer(learning_rate=0.001)
-  gen_rec_optimizer = tf.train.AdamOptimizer(learning_rate=0.0001)
-  gen_dis_optimizer = tf.train.AdamOptimizer(learning_rate=0.0001)
+  # dis_optimizer = tf.train.AdamOptimizer(learning_rate=0.001)
+  # gen_rec_optimizer = tf.train.AdamOptimizer(learning_rate=0.0001)
+  # gen_dis_optimizer = tf.train.AdamOptimizer(learning_rate=0.0001)
+
+  dis_optimizer = tf.train.AdadeltaOptimizer(learning_rate=0.001)
+  gen_rec_optimizer = tf.train.AdadeltaOptimizer(learning_rate=0.0001)
+  gen_dis_optimizer = tf.train.AdadeltaOptimizer(learning_rate=0.0001)
 
   dis_train_op = utils.get_train_op_for_scope(discriminator_loss,
                                               dis_optimizer,
@@ -82,7 +88,12 @@ def train_glc():
                                                         ['glc_gen'],
                                                         FLAGS.clip_gradient_norm)
 
-  generator_dis_train_op = utils.get_train_op_for_scope(generator_dis_loss,
+  # generator_dis_train_op = utils.get_train_op_for_scope(generator_dis_loss,
+  #                                                       gen_dis_optimizer,
+  #                                                       ['glc_gen'],
+  #                                                       FLAGS.clip_gradient_norm)
+
+  generator_dis_total_train_op = utils.get_train_op_for_scope(gen_total_loss,
                                                         gen_dis_optimizer,
                                                         ['glc_gen'],
                                                         FLAGS.clip_gradient_norm)
@@ -103,7 +114,8 @@ def train_glc():
           elif counter < T_C+T_D:
             _, loss_summaries, aa = sess.run([dis_train_op, loss_summary_op, discriminator_loss])
           else:
-            _, loss_summaries, aa = sess.run([generator_dis_train_op, loss_summary_op, generator_dis_loss])
+            # _, loss_summaries, aa = sess.run([generator_dis_train_op, loss_summary_op, generator_dis_loss])
+            _, loss_summaries, aa = sess.run([generator_dis_total_train_op, loss_summary_op, gen_total_loss])
           tb_writer.add_summary(loss_summaries, step)
           print('Global_step: {}, Loss: {}'.format(step, aa))
           # saver.save(sess, FLAGS.ckpt_dir)

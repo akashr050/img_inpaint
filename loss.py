@@ -27,8 +27,8 @@ def generator_minimax_loss_2(dis_pred, gt_vector):
 
 
 def discriminator_minimax_loss(dis_pred, gt_vector):
-  loss_1 = tf.multiply(tf.log((1 - dis_pred)), (1-gt_vector))
-  loss_2 = tf.multiply(tf.log(dis_pred), gt_vector)
+  loss_1 = tf.multiply(tf.log((1 - dis_pred)), 0.9*(1-gt_vector))
+  loss_2 = tf.multiply(tf.log(dis_pred), 0.9*gt_vector)
   loss = - (loss_1 + loss_2)
   loss = tf.cast(tf.reduce_mean(loss, name='discriminator_minimax_loss'), tf.float32)
   tf.losses.add_loss(loss)
