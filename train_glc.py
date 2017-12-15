@@ -13,11 +13,11 @@ layers = tf.contrib.layers
 
 # TODO: ADD checkpoint saver
 
-T_TRAIN, T_C, T_D = 5000, 900, 100
+T_TRAIN, T_C, T_D = 50, 9, 1
 alpha = 0.0004
 flags.DEFINE_string('train_file', 'train1.txt', 'Path to train images')
 flags.DEFINE_string('inp_dir', 'workspace', 'Path to input directory')
-flags.DEFINE_integer('batch_size', 96, '')
+flags.DEFINE_integer('batch_size', 5, '')
 
 flags.DEFINE_integer('epochs', 50000, '')
 flags.DEFINE_integer('img_size', 160, 'Image height')
@@ -115,16 +115,16 @@ def train_glc():
         for counter in range(T_TRAIN):
           step = sess.run(slim.get_global_step())
           if counter < T_C:
-            _, loss_summaries = sess.run([generator_rec_train_op, loss_summary_op, generator_rec_loss])
+            _, loss_summaries,aa = sess.run([generator_rec_train_op, loss_summary_op, generator_rec_loss])
           elif counter < T_C+T_D:
-            _, loss_summaries = sess.run([dis_train_op, loss_summary_op, discriminator_loss])
+            _, loss_summaries,aa = sess.run([dis_train_op, loss_summary_op, discriminator_loss])
           else:
             # _, loss_summaries, aa = sess.run([generator_dis_train_op, loss_summary_op, generator_dis_loss])
             _, loss_summaries, aa = sess.run([generator_dis_total_train_op, loss_summary_op, gen_total_loss])
 
           tb_writer.add_summary(loss_summaries, step)
-          print 'Global_step: {}'.format(step)
-        saver.save(sess, FLAGS.ckpt_dir)
+          print 'Global_step: {}, Loss: {}'.format(step, aa)
+        # saver.save(sess, FLAGS.ckpt_dir)
       except tf.errors.OutOfRangeError:
         break
   return None
