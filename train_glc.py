@@ -12,10 +12,10 @@ slim = tf.contrib.slim
 layers = tf.contrib.layers
 
 # TODO: ADD checkpoint saver
-T_TRAIN, T_C, T_D = 5, 2, 1
+T_TRAIN, T_C, T_D = 30, 10, 10
 flags.DEFINE_string('train_file', 'train.txt', 'Path to train images')
 flags.DEFINE_string('inp_dir', 'workspace', 'Path to input directory')
-flags.DEFINE_integer('batch_size', 1, '')
+flags.DEFINE_integer('batch_size', 5, '')
 flags.DEFINE_integer('epochs', 50000, '')
 flags.DEFINE_integer('img_size', 160, 'Image height')
 flags.DEFINE_integer('img_width', 160, 'image_width')
@@ -43,9 +43,23 @@ def train_glc():
   train_img_paths = get_data(os.path.join(FLAGS.inp_dir, FLAGS.train_file))
   slim.get_or_create_global_step()
   inputs = gen_inputs(FLAGS)
+
   image = inputs['image_bch']
   mask = inputs['mask_bch']
+  #
+  # image = np.ones((1,160,160,3))
+  # mask = np.zeros((1,160,160,1))
+  # mask[0,80:100,80:100,0] = 1
+  # image = tf.convert_to_tensor(image, tf.float32)
+  # mask = tf.convert_to_tensor(mask, tf.float32)
+
+  # print("The image is ", image)
+  # print("The mask is ",mask)
+
+
   gen_output, _ = glc_gen.generator(image, mask, mean_fill=FLAGS.mean_fill)
+  # print(gen_output)
+  # gen_output = image
 
   ##################
   ## Optimisation ##
@@ -58,7 +72,7 @@ def train_glc():
                           tf.ones(shape=FLAGS.batch_size,)], axis=0)
   pred_dis_labels, _ = glc_dis.discriminator(dis_input, dis_mask, FLAGS)
   discriminator_loss = loss.discriminator_minimax_loss(pred_dis_labels, dis_labels)
-
+  discriminator_loss_library = loss.tf_generator_minmax_disc_loss(tf.slice(pred_dis_labels, [0], [FLAGS.batch_size]),tf.slice(pred_dis_labels, [(FLAGS.batch_size)], [FLAGS.batch_size]))
   # Generator loss
   gen_dis_input = gen_output
   gen_dis_masks = mask
@@ -66,6 +80,7 @@ def train_glc():
   pred_gen_dis_labels, _ = glc_dis.discriminator(gen_dis_input, gen_dis_masks, FLAGS,
                                                  reuse=True)
   generator_dis_loss = loss.generator_minimax_loss(pred_gen_dis_labels, gen_dis_labels)
+  generator_dis_loss_library = loss.tf_generator_minmax_gen_loss(pred_gen_dis_labels)
   generator_rec_loss = loss.reconstruction_loss(gen_output, mask, image)
 
   dis_optimizer = tf.train.AdamOptimizer(learning_rate=0.001)
@@ -101,11 +116,12 @@ def train_glc():
           if counter < T_C:
             _, loss_summaries, aa = sess.run([generator_rec_train_op, loss_summary_op, generator_rec_loss])
           elif counter < T_C+T_D:
-            _, loss_summaries, aa = sess.run([dis_train_op, loss_summary_op, discriminator_loss])
+            _, loss_summaries, aa = sess.run([dis_train_op, loss_summary_op, discriminator_loss_library])
           else:
-            _, loss_summaries, aa = sess.run([generator_dis_train_op, loss_summary_op, generator_dis_loss])
+            _, loss_summaries, aa = sess.run([generator_dis_train_op, loss_summary_op, generator_dis_loss_library])
           tb_writer.add_summary(loss_summaries, step)
           print('Global_step: {}, Loss: {}'.format(step, aa))
+          # print("The loss is ", aa)
           # saver.save(sess, FLAGS.ckpt_dir)
       except tf.errors.OutOfRangeError:
         break
