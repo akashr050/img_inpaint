@@ -85,7 +85,7 @@ def discriminator(input, mask, params, reuse=False, scope='glc_dis'):
     fc_gb, end_points_collection = glc_gb_dis(input, end_points_collection)
     fc_concat = tf.concat([fc_lc, fc_gb], axis=1, name='fc_output')
     fc_flatten = slim.flatten(fc_concat)
-    output = slim.fully_connected(fc_flatten, 1, activation_fn=tf.nn.sigmoid, scope='output')
+    output = slim.fully_connected(fc_flatten, 1, activation_fn=None, scope='output')
     output = tf.squeeze(output, axis=1)
     end_points = slim.utils.convert_collection_to_dict(end_points_collection)
     return output, end_points
