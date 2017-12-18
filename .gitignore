@@ -1,6 +1,8 @@
 .idea
 *.swp
 .idea/*
+train_glc_1.py
+train_glc_2.py
 workspace
 celeba.tfrecords
 Untitled.ipynb
@@ -8,3 +10,4 @@ Untitled.ipynb
 tb_results
 checkpoints
 *.pyc
+Untitled Folder
