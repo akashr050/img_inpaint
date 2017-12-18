@@ -95,14 +95,14 @@ def eval_glc():
     # sess.run(tf.global_variables_initializer())
     sess.run(inputs['iterator'].initializer, feed_dict={
       inputs['image_paths']: eval_img_paths})
-    # while True:
-    try:
-      step = sess.run(slim.get_global_step())
-      img_summary = sess.run(summary_op)
-      tb_writer.add_summary(img_summary, step)
-      time.sleep(600)
-    except tf.errors.OutOfRangeError:
-      pass
+    while True:
+      try:
+        step = sess.run(slim.get_global_step())
+        img_summary = sess.run(summary_op)
+        tb_writer.add_summary(img_summary, step)
+        time.sleep(600)
+      except tf.errors.OutOfRangeError:
+        pass
   return None
 
 def main():
