@@ -1,5 +1,6 @@
 import tensorflow as tf
 import numpy as np
+from tensorflow.python.ops.losses import losses
 
 slim = tf.contrib.slim
 
@@ -14,6 +15,13 @@ def generator_minimax_loss(dis_pred, gt_vector):
   loss = tf.cast(-1*tf.divide(tf.reduce_sum(tf.multiply(tf.log((1 - dis_pred)), (1-gt_vector))),
                    tf.reduce_sum(1 - gt_vector),
                    name='generator_minimax_loss'), tf.float32)
+  tf.losses.add_loss(loss)
+  return loss
+
+def generator_minimax_loss_2(dis_pred, gt_vector):
+  # loss = losses.sigmoid_cross_entropy((gt_vector),dis_pred, label_smoothing = 0.0, scope = 'generator_minimax_loss_2')
+  loss = -tf.log(tf.multiply(dis_pred, (1-gt_vector)))
+  loss = tf.cast(tf.reduce_mean(loss, name='generator_minimax_loss'), tf.float32)
   tf.losses.add_loss(loss)
   return loss
 
