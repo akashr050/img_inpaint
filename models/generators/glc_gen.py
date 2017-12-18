@@ -14,8 +14,8 @@ def generator(input, mask, mean_fill=0.5, scope='glc_gen'):
                          slim.conv2d_transpose],
                         outputs_collections=end_points_collection,
                         padding='SAME'):
-      with slim.arg_scope([slim.conv2d_transpose], padding='SAME', biases_initializer=None):
-        # net = tf.pad(input, [[0, 0], [100, 100], [100, 100], [0, 0]], mode="CONSTANT", constant_values=0.0)
+      with slim.arg_scope([slim.conv2d_transpose], padding='SAME',normalizer_fn=slim.batch_norm, biases_initializer=None):
+        # net = tf.pad(input, [[0, 0], [100, 100], [100, 100], [0, 0]], mode="CONSTANT", constant_values=0.0) normalizer_fn=slim.batch_norm
         net = tf.add(input * (1-mask), mean_fill * mask, name='masked_img')
         tf.add_to_collection(end_points_collection, net)
         net = slim.conv2d(net, 64, [5, 5], scope='conv1')
@@ -31,11 +31,11 @@ def generator(input, mask, mean_fill=0.5, scope='glc_gen'):
         net = slim.conv2d(net, 256, [3, 3], rate=16, scope='conv3_7')
         net = slim.repeat(net, 2, slim.conv2d, 256, [3, 3], scope='conv3_8')
 
-        net = slim.conv2d_transpose(net, 128, [4, 4], 2, scope='conv4_1')
-        net = slim.conv2d(net, 128, [3, 3], scope='conv4_2')
-        net = slim.conv2d_transpose(net, 64, [4, 4], 2, scope='conv5_1')
+        net = slim.conv2d_transpose(net, 128, [4, 4], 2,  scope='conv4_1')
+        net = slim.conv2d(net, 128, [3, 3],  scope='conv4_2')
+        net = slim.conv2d_transpose(net, 64, [4, 4], 2,  scope='conv5_1')
         net = slim.conv2d(net, 32, [3, 3], scope='conv5_2')
-        net = slim.conv2d(net, 3, [3, 3], activation_fn=tf.nn.sigmoid, scope='conv5_3')
+        net = slim.conv2d(net, 3, [3, 3], activation_fn=tf.nn.sigmoid,normalizer_fn=None,scope='conv5_3')
         net = tf.add(net * mask, input * (1-mask))
         end_points = slim.utils.convert_collection_to_dict(end_points_collection)
         return net, end_points

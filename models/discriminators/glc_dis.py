@@ -47,12 +47,14 @@ def glc_lc_dis(input, mask, output_collection, params, scope='glc_lc_dis'):
     with slim.arg_scope([slim.conv2d],
                         outputs_collections=end_points_collection,
                         padding='SAME',
+                        normalizer_fn=slim.batch_norm,
                         stride=[2, 2],
                         kernel_size=[5, 5]):
       with slim.arg_scope([slim.fully_connected], outputs_collections=end_points_collection):
         tf.add_to_collection(end_points_collection, net_input)
         net = slim.conv2d(net_input, 64, scope='conv1')
-        net = slim.stack(net, slim.conv2d, [128, 256, 512, 512], scope='conv2')
+        net = slim.stack(net, slim.conv2d, [128, 256, 512], scope='conv2')
+        net = slim.conv2d(net, 512, normalizer_fn=None, scope='conv3')
         net = slim.fully_connected(net, 1024)
       return net, output_collection
 
@@ -63,12 +65,14 @@ def glc_gb_dis(input, output_collection, scope='glc_gb_dis'):
     with slim.arg_scope([slim.conv2d],
                         outputs_collections=end_points_collection,
                         padding='SAME',
+                        normalizer_fn=slim.batch_norm,
                         stride=[2, 2],
                         kernel_size=[5, 5]):
       with slim.arg_scope([slim.fully_connected], outputs_collections=end_points_collection):
         tf.add_to_collection(end_points_collection, input)
         net = slim.conv2d(input, 64, scope='conv1')
-        net = slim.stack(net, slim.conv2d, [128, 256, 512, 512, 512], scope='conv2')
+        net = slim.stack(net, slim.conv2d, [128, 256, 512, 512], scope='conv2')
+        net = slim.conv2d(net, 512, normalizer_fn=None, scope='conv3')
         net = slim.fully_connected(net, 1024)
       return net, output_collection
 
@@ -81,7 +85,7 @@ def discriminator(input, mask, params, reuse=False, scope='glc_dis'):
     fc_gb, end_points_collection = glc_gb_dis(input, end_points_collection)
     fc_concat = tf.concat([fc_lc, fc_gb], axis=1, name='fc_output')
     fc_flatten = slim.flatten(fc_concat)
-    output = slim.fully_connected(fc_flatten, 1, activation_fn=tf.nn.sigmoid, scope='output')
+    output = slim.fully_connected(fc_flatten, 1, activation_fn=None, scope='output')
     output = tf.squeeze(output, axis=1)
     end_points = slim.utils.convert_collection_to_dict(end_points_collection)
     return output, end_points

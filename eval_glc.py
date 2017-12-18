@@ -15,7 +15,7 @@ layers = tf.contrib.layers
 T_TRAIN, T_C, T_D = 100, 50, 40
 flags.DEFINE_string('train_file', 'eval.txt', 'Path to train images')
 flags.DEFINE_string('inp_dir', 'workspace', 'Path to input directory')
-flags.DEFINE_integer('batch_size', 3, '')
+flags.DEFINE_integer('batch_size', 1, '')
 flags.DEFINE_integer('epochs', 1000, '')
 flags.DEFINE_integer('img_size', 160, 'Image height')
 flags.DEFINE_integer('img_width', 160, 'image_width')
