@@ -3,6 +3,7 @@ import numpy as np
 from models.generators import glc_gen
 from input_generator import gen_inputs
 import os
+import time
 # import matplotlib.pyplot as plt
 # import io
 
@@ -12,7 +13,7 @@ layers = tf.contrib.layers
 
 # TODO: ADD checkpoint saver
 T_TRAIN, T_C, T_D = 100, 50, 40
-flags.DEFINE_string('train_file', 'train.txt', 'Path to train images')
+flags.DEFINE_string('train_file', 'eval.txt', 'Path to train images')
 flags.DEFINE_string('inp_dir', 'workspace', 'Path to input directory')
 flags.DEFINE_integer('batch_size', 3, '')
 flags.DEFINE_integer('epochs', 1000, '')
@@ -94,10 +95,12 @@ def eval_glc():
     # sess.run(tf.global_variables_initializer())
     sess.run(inputs['iterator'].initializer, feed_dict={
       inputs['image_paths']: eval_img_paths})
+    # while True:
     try:
       step = sess.run(slim.get_global_step())
       img_summary = sess.run(summary_op)
       tb_writer.add_summary(img_summary, step)
+      time.sleep(600)
     except tf.errors.OutOfRangeError:
       pass
   return None
