@@ -13,7 +13,7 @@ slim = tf.contrib.slim
 layers = tf.contrib.layers
 
 # TODO: ADD checkpoint saver
-T_TRAIN, T_C, T_D = 100, 70, 25
+T_TRAIN, T_C, T_D = 50000, 9000, 1000
 flags.DEFINE_string('train_file', 'train.txt', 'Path to train images')
 flags.DEFINE_string('inp_dir', 'workspace', 'Path to input directory')
 flags.DEFINE_integer('batch_size', 64, '')
@@ -27,6 +27,7 @@ flags.DEFINE_integer('num_channels', 3, '')
 flags.DEFINE_integer('clip_gradient_norm', 5, '')
 flags.DEFINE_string('tb_dir', 'tb_results', '')
 flags.DEFINE_string('ckpt_dir', 'checkpoints/', '')
+flags.DEFINE_float('alpha', 0.0004, '')
 FLAGS = flags.FLAGS
 
 
@@ -74,6 +75,8 @@ def train_glc():
   #  generator_dis_loss = loss.generator_minimax_loss(pred_gen_dis_labels, gen_dis_labels)
   # generator_dis_loss_library = loss.tf_generator_minmax_gen_loss(pred_gen_dis_labels)
   generator_rec_loss = loss.reconstruction_loss(gen_output, mask, image)
+  generator_tot_loss = tf.add(generator_rec_loss, FLAGS.alpha * generator_dis_loss_library, name='gen_total_loss')
+  tf.losses.add_loss(generator_tot_loss)
 
   dis_optimizer = tf.train.AdamOptimizer(learning_rate=0.001)
   gen_rec_optimizer = tf.train.AdamOptimizer(learning_rate=0.001)
@@ -89,7 +92,7 @@ def train_glc():
                                                         ['glc_gen'],
                                                         FLAGS.clip_gradient_norm)
 
-  generator_dis_train_op = utils.get_train_op_for_scope(generator_dis_loss_library,
+  generator_dis_train_op = utils.get_train_op_for_scope(generator_tot_loss,
                                                         gen_dis_optimizer,
                                                         ['glc_gen'],
                                                         FLAGS.clip_gradient_norm)
@@ -102,22 +105,22 @@ def train_glc():
     sess.run(inputs['iterator'].initializer, feed_dict={
       inputs['image_paths']: train_img_paths})
 
-    while True:
-      try:
-        for counter in range(T_TRAIN):
-          step = sess.run(slim.get_global_step())
-          if counter < T_C:
-            _, loss_summaries, aa = sess.run([generator_rec_train_op, loss_summary_op, generator_rec_loss])
-          elif counter < T_C+T_D:
-            _, loss_summaries, aa = sess.run([dis_train_op, loss_summary_op, discriminator_loss_library])
-          else:
-            _, loss_summaries, aa = sess.run([generator_dis_train_op, loss_summary_op, generator_dis_loss_library])
-          tb_writer.add_summary(loss_summaries, step)
-          print 'Global_step: {}, Loss: {}'.format(step,aa)
-        if step%1000==0:
-          saver.save(sess, FLAGS.ckpt_dir)
-      except tf.errors.OutOfRangeError:
-        break
+    #  while True:
+    try:
+      for counter in range(T_TRAIN):
+        step = sess.run(slim.get_global_step())
+        if counter < T_C:
+          _, loss_summaries, aa = sess.run([generator_rec_train_op, loss_summary_op, generator_rec_loss])
+        else:
+          _, loss_summaries, aa = sess.run([dis_train_op, loss_summary_op, discriminator_loss_library])
+        if counter > T_C+T_D:
+          _, loss_summaries, aa = sess.run([generator_dis_train_op, loss_summary_op, generator_dis_loss_library])
+        tb_writer.add_summary(loss_summaries, step)
+        print 'Global_step: {}, Loss: {}'.format(step,aa)
+      if step%1000==0:
+        saver.save(sess, FLAGS.ckpt_dir)
+    except tf.errors.OutOfRangeError:
+      break
   return None
 
 def main():
