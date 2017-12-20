@@ -14,8 +14,8 @@ layers = tf.contrib.layers
 
 # TODO: ADD checkpoint saver
 T_TRAIN, T_C, T_D = 50000, 9000, 1000
-flags.DEFINE_string('train_file', 'train.txt', 'Path to train images')
-flags.DEFINE_string('inp_dir', 'workspace', 'Path to input directory')
+flags.DEFINE_string('train_file', '/home/arastog/datasets/CelebA/train.txt', 'Path to train images')
+flags.DEFINE_string('inp_dir', '/home/xcyan/datasets/CelebA', 'Path to input directory')
 flags.DEFINE_integer('batch_size', 64, '')
 flags.DEFINE_integer('epochs', 50000, '')
 flags.DEFINE_integer('img_size', 160, 'Image height')
@@ -42,7 +42,7 @@ def get_data(file_path):
 
 
 def train_glc():
-  train_img_paths = get_data(os.path.join(FLAGS.inp_dir, FLAGS.train_file))
+  train_img_paths = get_data(os.path.join(FLAGS.train_file))
   slim.get_or_create_global_step()
   inputs = gen_inputs(FLAGS)
   image = inputs['image_bch']
@@ -117,10 +117,10 @@ def train_glc():
           _, loss_summaries, aa = sess.run([generator_dis_train_op, loss_summary_op, generator_dis_loss_library])
         tb_writer.add_summary(loss_summaries, step)
         print 'Global_step: {}, Loss: {}'.format(step,aa)
-      if step%1000==0:
-        saver.save(sess, FLAGS.ckpt_dir)
+        if step%100==0:
+          saver.save(sess, FLAGS.ckpt_dir)
     except tf.errors.OutOfRangeError:
-      break
+      pass
   return None
 
 def main():

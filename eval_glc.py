@@ -14,8 +14,8 @@ layers = tf.contrib.layers
 # TODO: ADD checkpoint saver
 T_TRAIN, T_C, T_D = 100, 50, 40
 flags.DEFINE_string('train_file', 'eval.txt', 'Path to train images')
-flags.DEFINE_string('inp_dir', 'workspace', 'Path to input directory')
-flags.DEFINE_integer('batch_size', 1, '')
+flags.DEFINE_string('inp_dir', '/mnt/brain1/scratch/arastog/face3d_project/workspace/datasets/CelebA', 'Path to input directory')
+flags.DEFINE_integer('batch_size', 5, '')
 flags.DEFINE_integer('epochs', 1000, '')
 flags.DEFINE_integer('img_size', 160, 'Image height')
 flags.DEFINE_integer('img_width', 160, 'image_width')
@@ -54,12 +54,12 @@ def get_data(file_path):
 
 
 def eval_glc():
-  eval_img_paths = get_data(os.path.join(FLAGS.inp_dir, FLAGS.train_file))
+  eval_img_paths = get_data(os.path.join(FLAGS.inp_dir, FLAGS.train_file))[:5]
   slim.get_or_create_global_step()
   inputs = gen_inputs(FLAGS)
   image = inputs['image_bch']
   mask = inputs['mask_bch']
-  gen_output, _ = glc_gen.generator(image, mask, mean_fill=FLAGS.mean_fill)
+  gen_output, gen_dict = glc_gen.generator(image, mask, mean_fill=FLAGS.mean_fill)
 
   ############
   ## Viz op ##
@@ -68,13 +68,15 @@ def eval_glc():
   image = tf.cast(image*255, dtype=tf.uint8)
   mask = tf.cast(mask*255, dtype=tf.uint8)
   gen_image = tf.cast(gen_output*255, dtype=tf.uint8)
+  gen_masked_images = tf.cast(gen_dict['glc_gen/masked_img']*255, dtype=tf.uint8)
   # vizual_op = tf.py_func(viz_op, [image, mask, gen_image], tf.float32)
   # image_summary = tf.image.decode_png(vizual_op.getvalue(), channels=4)
   # image_summary = tf.expand_dims(image_summary, 0)
   # summary_op = tf.summary.image('image_summary', image_summary)
-  tf.summary.image(name='input_images', tensor=image)
-  tf.summary.image(name='mask', tensor=mask)
-  tf.summary.image(name='gen_images', tensor=gen_image)
+  tf.summary.image(name='input_images', tensor=image, max_outputs=5)
+  tf.summary.image(name='mask', tensor=mask, max_outputs=5)
+  tf.summary.image(name='gen_images', tensor=gen_image, max_outputs=5)
+  tf.summary.image(name='masked_img', tensor=gen_masked_images, max_outputs=5)
   summary_op = tf.summary.merge_all()
   init_op = inputs['iterator'].initializer
 
@@ -91,18 +93,19 @@ def eval_glc():
   with tf.Session() as sess:
     tb_writer = tf.summary.FileWriter(FLAGS.tb_dir + '/eval')
     saver = tf.train.Saver()
-    saver.restore(sess, FLAGS.ckpt_dir)
-    # sess.run(tf.global_variables_initializer())
+    # saver.restore(sess, FLAGS.ckpt_dir)
+    sess.run(tf.global_variables_initializer())
     sess.run(inputs['iterator'].initializer, feed_dict={
       inputs['image_paths']: eval_img_paths})
     while True:
       try:
+        saver.restore(sess, FLAGS.ckpt_dir)
         step = sess.run(slim.get_global_step())
         img_summary = sess.run(summary_op)
         tb_writer.add_summary(img_summary, step)
-        time.sleep(600)
+        time.sleep(FLAGS.eval_interval_secs)
       except tf.errors.OutOfRangeError:
-        pass
+        break
   return None
 
 def main():
