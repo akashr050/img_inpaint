@@ -1,1 +1,1 @@
-This repository contains experiments we did for image inpainting
+This repository contains experiments we did for image inpainting. We have implemented Globally and locally consistent image completion paper (http://hi.cs.waseda.ac.jp/~iizuka/projects/completion/en/). 
